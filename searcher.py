@@ -18,6 +18,12 @@ def getArgs() -> Namespace:
         epilog="Created by Nicholas M. Synovic",
     )
     parser.add_argument(
+        "--doi",
+        action="store_true",
+        required=False,
+        help="Return documents that have an official DOI",
+    )
+    parser.add_argument(
         "-i",
         "--input",
         nargs=1,
@@ -57,6 +63,8 @@ def main() -> None:
     else:
         query = args.query
 
+    outputPath: Path = Path(f"{query}.json")
+
     jr: JsonReader = pandas.read_json(
         path_or_buf=arxivPath,
         lines=True,
@@ -71,7 +79,14 @@ def main() -> None:
             spinner.next()
 
     df: DataFrame = pandas.concat(objs=DF_LIST, ignore_index=True)
-    df.T.to_json(path_or_buf=Path(f"{query}.json"), indent=4)
+
+    if args.doi:
+        df.dropna(subset=["doi"], inplace=True)
+        df.reset_index(inplace=True)
+
+    print(f"Found {'{:,}'.format(df.size)} documents")
+    df.T.to_json(path_or_buf=outputPath, indent=4)
+    print(f"Saved file to {outputPath}")
 
 
 if __name__ == "__main__":
